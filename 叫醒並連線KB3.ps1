@@ -16,7 +16,7 @@ param(
     [ValidateRange(1,65535)][int]$RemoteAdbPort = 8888,
     [string]$ExpectedSerial = '',
     [string]$RustDeskPath = 'C:\Program Files\RustDesk\RustDesk.exe',
-    [string]$AdbPath = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe",
+    [string]$AdbPath = '',
     [Security.SecureString]$Password,
     [switch]$CheckOnly,
     [switch]$NoPause
@@ -37,9 +37,9 @@ function ConvertTo-NativeArgument([string]$Value) {
     return '"' + $escaped + '"'
 }
 
-function Invoke-Adb([string[]]$CommandArgs, [int]$TimeoutSeconds = 12) {
+function Invoke-Adb([string[]]$CommandArgs, [int]$TimeoutSeconds = 12, [string]$ExecutablePath = $AdbPath) {
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = $AdbPath
+    $startInfo.FileName = $ExecutablePath
     $startInfo.Arguments = (($CommandArgs | ForEach-Object { ConvertTo-NativeArgument $_ }) -join ' ')
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
@@ -60,6 +60,42 @@ function Invoke-Adb([string[]]$CommandArgs, [int]$TimeoutSeconds = 12) {
         if ($child.ExitCode -ne 0) { throw "ADB 失敗：$errorText" }
         return ($output + $errorText).Trim()
     } finally { $child.Dispose() }
+}
+
+function Resolve-AdbExecutable([string]$RequestedPath) {
+    $candidates = New-Object 'System.Collections.Generic.List[string]'
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        # 明確指定時只檢查該檔，不悄悄改用另一份工具。
+        $candidates.Add($RequestedPath)
+    } else {
+        $candidates.Add('C:\Nuwa-kebbi3\KB3_WiFi_ADB_Windows_37.0.1\platform-tools\adb.exe')
+        $candidates.Add((Join-Path $PSScriptRoot 'platform-tools\adb.exe'))
+        foreach ($sdkRoot in @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME)) {
+            if (-not [string]::IsNullOrWhiteSpace($sdkRoot)) { $candidates.Add((Join-Path $sdkRoot 'platform-tools\adb.exe')) }
+        }
+        foreach ($localRoot in @($env:LOCALAPPDATA, [Environment]::GetFolderPath('LocalApplicationData'))) {
+            if (-not [string]::IsNullOrWhiteSpace($localRoot)) { $candidates.Add((Join-Path $localRoot 'Android\Sdk\platform-tools\adb.exe')) }
+        }
+        foreach ($adbCommand in @(Get-Command adb.exe -CommandType Application -All -ErrorAction SilentlyContinue)) {
+            $candidates.Add($adbCommand.Source)
+        }
+    }
+    $checked = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($candidate in @($candidates | Select-Object -Unique)) {
+        if (-not [IO.Path]::IsPathRooted($candidate)) { $candidate = Join-Path (Get-Location).Path $candidate }
+        if (-not [IO.File]::Exists($candidate)) {
+            $checked.Add("$candidate（找不到檔案）")
+            continue
+        }
+        try {
+            $versionText = Invoke-Adb -CommandArgs @('version') -TimeoutSeconds 5 -ExecutablePath $candidate
+            if ($versionText -notmatch 'Android Debug Bridge version') { throw '程式沒有回報有效 ADB 版本。' }
+            return [IO.Path]::GetFullPath($candidate)
+        } catch {
+            $checked.Add("$candidate（無法執行：$($_.Exception.Message)）")
+        }
+    }
+    throw ("沒有找到可執行的 ADB。使用者：$env:USERNAME；已檢查：`n" + ($checked -join "`n") + "`n請保留這段結果供排查。")
 }
 
 function Test-TunnelListener {
@@ -86,11 +122,12 @@ function Start-RustDeskSession([string]$Mode) {
 }
 
 try {
-    foreach ($requiredFile in @($RustDeskPath, $AdbPath)) {
-        if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
-            throw "找不到必要程式：$requiredFile。請依 README 完成安裝，或指定正確路徑。"
-        }
+    Write-Host 'KB3 連線工具：自動尋找 ADB，並保留執行結果。'
+    if (-not (Test-Path -LiteralPath $RustDeskPath -PathType Leaf)) {
+        throw "找不到 RustDesk：$RustDeskPath。請確認安裝位置。"
     }
+    $AdbPath = Resolve-AdbExecutable -RequestedPath $AdbPath
+    Write-Host "使用的 ADB：$AdbPath"
     $networkConfig = Get-Content -LiteralPath (Join-Path $configRoot 'RustDesk2.toml') -Raw
     foreach ($entry in @(
         @('custom-rendezvous-server', '35.229.172.16:21116'),

@@ -92,7 +92,7 @@ Windows：「設定 → 網路 → ID／中繼伺服器」。Android：「設定
 3. 現場啟用 KB3 ADB，確認其實際連接埠，並在 KB3 授權操作者筆電的 ADB 金鑰。本機實驗埠為 8888；不是每台 Android 的固定預設。
 4. 兩端填入上述 GCP 欄位，先連進 KB3 一次，確認桌面與輸入可用，建立 RustDesk 的 peer 設定。
 5. 在 Windows RustDesk 對這台 KB3 開啟「TCP 通道／Port Forward」，新增：本機連接埠 `18888`、遠端主機 `localhost`、遠端連接埠 `8888`。
-6. 筆電安裝 Android platform-tools。腳本預設尋找 `$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe`，可用 `-AdbPath` 指定既有位置。
+6. 筆電備妥 Android platform-tools。腳本會依序檢查本機已驗證的 KB3 工具包 `C:\Nuwa-kebbi3\KB3_WiFi_ADB_Windows_37.0.1\platform-tools\adb.exe`、本專案下的 platform-tools、ANDROID_SDK_ROOT／ANDROID_HOME、使用者 Android SDK 目錄、PATH。每個候選都先執行 `adb version`，通過才採用，並在視窗顯示選到的路徑。仍可用 `-AdbPath` 明確指定；明確指定錯誤時不會悄悄改用其他檔案。
 7. 先執行 `-CheckOnly`。正式執行時，如此 peer 的通道規則變成空白，腳本會補回一條指定規則；遇到其他規則則停止，不覆蓋。
 
 其他設備用法，將示例中的序號改成該 KB3 的真實序號：
@@ -190,6 +190,7 @@ sudo docker compose --project-directory /opt/eai-kb3-remote up -d
 ## 常見問題
 
 - 右鍵執行後 PowerShell 視窗一閃就關：已於 2026-10-31 改為預設保留結果、按 Enter 才結束；請使用此目錄更新後的 PS1。原先視窗關閉本身不能判定連線成功或失敗。
+- 顯示找不到原 Android SDK 的 adb.exe：新版會自動尋找並驗證現有 ADB，不只依賴單一路徑。先按 Enter 關閉舊結果視窗，再重新執行原 PS1；新版開頭會顯示「自動尋找 ADB」與實際路徑。如果所有候選都失敗，會保留檢查清單，不會自動安裝或更動權限。
 - 有畫面卻不知道怎麼開 App：中鍵回眼睛首頁，再左鍵從右往左拖，不需要先打開 eAi360 後台。
 - 腳本說序號不符：停止操作，核對 DeviceId、通道規則及 ExpectedSerial。腳本在這種情況不送喚醒。
 - 通道視窗開了但 ADB 連不上：核對 KB3 ADB 埠、這台筆電的 ADB 信任及 RustDesk TCP 通道權限。腳本不會改走區網 IP。
