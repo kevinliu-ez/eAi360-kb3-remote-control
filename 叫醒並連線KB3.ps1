@@ -7,6 +7,7 @@
 本腳本不安裝服務、不改防火牆、不公開 ADB。
 若指定設備的通道規則為空，會補回本案的一條規則；不覆蓋其他通道。
 密碼從同目錄的本機私人 MD 讀取；沒有該檔時以隱藏輸入詢問。
+一般執行會保留結果視窗，按 Enter 才結束；自動化可加 -NoPause。
 #>
 [CmdletBinding()]
 param(
@@ -17,7 +18,8 @@ param(
     [string]$RustDeskPath = 'C:\Program Files\RustDesk\RustDesk.exe',
     [string]$AdbPath = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe",
     [Security.SecureString]$Password,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$NoPause
 )
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
@@ -26,6 +28,7 @@ $privateMd = Join-Path $PSScriptRoot 'KB3遠端喚醒與桌面控制_GCP中繼�
 $configRoot = Join-Path $env:APPDATA 'RustDesk\config'
 $secret = $null
 $madeAdbConnection = $false
+$runFailed = $false
 
 function ConvertTo-NativeArgument([string]$Value) {
     # Windows CommandLineToArgvW 的引號與反斜線規則。
@@ -174,12 +177,25 @@ try {
     if (-not $isAwake) { throw '已送喚醒指令，但未驗證為 Awake；請勿當作喚醒成功。' }
     Write-Host '[4/4] KB3 已 Awake，開啟 RustDesk 桌面……'
     Start-RustDeskSession '--connect'
-    Write-Host '完成。桌面出現後，中鍵回眼睛首頁；按住左鍵由右往左拖，進入 App 圖示清單。'
+    Write-Host '完成：KB3 已叫醒，已送出開啟遠端桌面的指令。' -ForegroundColor Green
+    Write-Host '請切到有 KB3 畫面的 RustDesk 視窗，不是 TCP 通道視窗。'
+    Write-Host '桌面出現後，中鍵回眼睛首頁；按住左鍵由右往左拖，進入 App 圖示清單。'
     Write-Host '此處確認 Android 已喚醒；畫面擷取及觸控仍以遠端桌面實際顯示為準。'
+} catch {
+    $runFailed = $true
+    Write-Host ''
+    Write-Host '這次未完成，原因如下：' -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host '請保留此視窗並提供上面的錯誤文字，以便排查；不必一直重新點執行。'
 } finally {
     if ($madeAdbConnection) {
         try { [void](Invoke-Adb -CommandArgs @('disconnect', $targetAddress) -TimeoutSeconds 5) } catch { Write-Warning '本次 ADB 連線未能自動斷開，請執行 adb disconnect 127.0.0.1:18888。' }
     }
     $secret = $null
     $privateText = $null
+    if (-not $NoPause -and -not $CheckOnly) {
+        Write-Host ''
+        [void](Read-Host '結果已保留。按 Enter 結束腳本；RustDesk 視窗會保留')
+    }
 }
+if ($runFailed) { exit 1 }

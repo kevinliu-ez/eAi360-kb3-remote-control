@@ -19,6 +19,8 @@ powershell.exe -NoProfile -File "C:\eAi360-kb3-remote-control\叫醒並連線KB3
 3. 確認 Android 為 Awake，再開啟 RustDesk 桌面。
 4. 自動斷開本次建立的 ADB 連線，保留桌面供操作。
 
+執行結果視窗會保留，顯示綠色「完成」或紅色錯誤原因，按 Enter 才結束腳本。看到完成後，切到有 KB3 畫面的 RustDesk 視窗，不是 TCP 通道視窗。自動化呼叫可加 `-NoPause`；`-CheckOnly` 本身不暫停。
+
 本機完整規格 MD 保留 Kevin 指定的測試密碼，腳本會讀取該檔；它不在 GitHub 裡。其他筆電沒有該 MD 時，腳本會詢問設備序號及隱藏輸入的 RustDesk 密碼。請勿把密碼寫進公開腳本或 README。
 
 只檢查程式與設定、不連線也不寫入：
@@ -187,6 +189,7 @@ sudo docker compose --project-directory /opt/eai-kb3-remote up -d
 
 ## 常見問題
 
+- 右鍵執行後 PowerShell 視窗一閃就關：已於 2026-10-31 改為預設保留結果、按 Enter 才結束；請使用此目錄更新後的 PS1。原先視窗關閉本身不能判定連線成功或失敗。
 - 有畫面卻不知道怎麼開 App：中鍵回眼睛首頁，再左鍵從右往左拖，不需要先打開 eAi360 後台。
 - 腳本說序號不符：停止操作，核對 DeviceId、通道規則及 ExpectedSerial。腳本在這種情況不送喚醒。
 - 通道視窗開了但 ADB 連不上：核對 KB3 ADB 埠、這台筆電的 ADB 信任及 RustDesk TCP 通道權限。腳本不會改走區網 IP。
