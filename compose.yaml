@@ -1,0 +1,42 @@
+name: eai-kb3-remote
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:1.1.16@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00
+    command: ["hbbs", "-r", "${RUSTDESK_RELAY_HOST:?Set relay host}:21117", "-k", "_"]
+    environment:
+      ALWAYS_USE_RELAY: "${ALWAYS_USE_RELAY:-Y}"
+    volumes:
+      - ./data:/root
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: "0.25"
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  hbbr:
+    image: rustdesk/rustdesk-server:1.1.16@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00
+    command: ["hbbr", "-k", "_"]
+    environment:
+      TOTAL_BANDWIDTH: "20"
+      SINGLE_BANDWIDTH: "4"
+      LIMIT_SPEED: "2"
+    volumes:
+      - ./data:/root
+    network_mode: host
+    depends_on:
+      - hbbs
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: "0.75"
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

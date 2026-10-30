@@ -1,0 +1,8 @@
+# 本機原始研究 MD 含 Kevin 明確要求留存的測試密碼，不推送。
+KB3遠端喚醒與桌面控制_GCP中繼規格_v1.0.md
+*.private.*
+.env
+data/
+id_ed25519
+*.log
+*.png
