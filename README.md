@@ -4,6 +4,16 @@
 
 目前已驗證單台 KB3 的 GCP 桌面控制、無人接受登入、通道喚醒，以及關閉桌面／通道、熄屏超過六分鐘後重新執行腳本。Kevin 也已確認實際操作成功。這不是純 RustDesk 自動喚醒，也沒有改版 APK。
 
+## 瀏覽器使用現況（2026-10-31）
+
+KB3 已安裝 Chrome Android 156.0.8078.79 與 Firefox Android 159.0，兩款並存。Kevin 試用後確認 Chrome 可用，後續傾向以 Chrome 為主；Firefox 保留供網站相容性比較。Chrome 尚未設為 Android 系統預設瀏覽器。
+
+RustDesk 目前保留 VP8。前段 Firefox 黑屏是透過重建螢幕分享恢復，滑鼠不能點按則在恢復 RustDesk Input 後解除；不能把 Chrome 可用寫成所有先前問題都由 Firefox 核心造成。
+
+詳見 [Firefox／Chrome 安裝、RustDesk 排查與對話紀錄](KB3_Firefox安裝與RustDesk黑屏排查_2026-10-31.md)：第 12 節是 Chrome 安裝與使用回饋，第 7 節是遠端恢復步驟，第 6 節是 VP8／H.264 比較。Chrome 使用 APKMirror 提供的 Google 簽章 APK，已核對摘要與簽章，安裝成功後刪除暫存檔；未補裝 Google Play 商店或 Google Play 服務。
+
+Kevin 的整體可用性回饋與助理獨立驗證的安裝、啟動、投影分別記錄；各網站與指定 Drive 影片的長時間播放、音畫同步等完整測試仍待補齊。
+
 ## Kevin 現在怎麼用
 
 在這台已設定好的筆電，開啟 PowerShell 執行：
